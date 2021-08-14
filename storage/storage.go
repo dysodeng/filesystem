@@ -2,7 +2,6 @@ package storage
 
 import (
 	"io"
-	"mime/multipart"
 	"os"
 )
 
@@ -22,7 +21,7 @@ type Storage interface {
 	ReadStream(filePath string, mode string) (io.ReadCloser, error)
 
 	// Save 保存文件
-	Save(dstFile string, srcFile multipart.File, mime string) (bool, error)
+	Save(dstFile string, srcFile io.Reader, mime string) (bool, error)
 
 	// Cover 生成缩略图封面
 	Cover(sourceImagePath, coverImagePath string, width, height uint) error

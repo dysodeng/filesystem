@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/url"
 	"os"
 	"strconv"
@@ -119,7 +118,7 @@ func (storage *AliOssStorage) ReadStream(filePath string, mode string) (io.ReadC
 }
 
 // Save 保存文件
-func (storage *AliOssStorage) Save(dstFile string, srcFile multipart.File, mime string) (bool, error) {
+func (storage *AliOssStorage) Save(dstFile string, srcFile io.Reader, mime string) (bool, error) {
 
 	var options []oss.Option
 	if mime != "" {
@@ -136,7 +135,7 @@ func (storage *AliOssStorage) Save(dstFile string, srcFile multipart.File, mime 
 }
 
 // Cover 生成缩略图封面
-func (storage AliOssStorage) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
+func (storage *AliOssStorage) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
 	style := "image/resize,m_lfit"
 	if width > 0 {
 		style += ",w_" + strconv.Itoa(int(width))
