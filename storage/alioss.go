@@ -24,20 +24,18 @@ type AliOssStorage struct {
 }
 
 type AliOssConfig struct {
-	AccessId         string
-	AccessKey        string
-	EndPoint         string
-	Region           string
-	BucketName       string
-	StayBucketName	 string
-	StsRoleArn       string
+	AccessId       string
+	AccessKey      string
+	EndPoint       string
+	Region         string
+	BucketName     string
+	StayBucketName string
+	StsRoleArn     string
 }
 
 // NewAliOssStorage create ali_oss storage
 func NewAliOssStorage(config AliOssConfig) Storage {
-
 	aliStorage := new(AliOssStorage)
-
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(err)
@@ -67,13 +65,11 @@ func NewAliOssStorage(config AliOssConfig) Storage {
 
 // HasFile 判断文件是否存在
 func (storage *AliOssStorage) HasFile(filePath string) bool {
-
 	result, err := storage.bucket.IsObjectExist(filePath)
 	if err != nil {
 		log.Println(err.Error())
 		return false
 	}
-
 	return result
 }
 
@@ -84,7 +80,6 @@ func (storage *AliOssStorage) HasDir(dirPath string) bool {
 
 // Read 读取文件内容
 func (storage *AliOssStorage) Read(filePath string) ([]byte, error) {
-
 	body, err := storage.bucket.GetObject(filePath)
 	if err != nil {
 		log.Println(err.Error())
@@ -99,7 +94,6 @@ func (storage *AliOssStorage) Read(filePath string) ([]byte, error) {
 		log.Println(err.Error())
 		return []byte{}, err
 	}
-
 	return data, nil
 }
 
@@ -113,13 +107,11 @@ func (storage *AliOssStorage) ReadStream(filePath string, mode string) (io.ReadC
 	defer func() {
 		_ = body.Close()
 	}()
-
 	return body, nil
 }
 
 // Save 保存文件
 func (storage *AliOssStorage) Save(dstFile string, srcFile io.Reader, mime string) (bool, error) {
-
 	var options []oss.Option
 	if mime != "" {
 		options = []oss.Option{
@@ -130,7 +122,6 @@ func (storage *AliOssStorage) Save(dstFile string, srcFile io.Reader, mime strin
 	if err := storage.bucket.PutObject(dstFile, srcFile, options...); err != nil {
 		return false, err
 	}
-
 	return true, nil
 }
 
@@ -150,31 +141,26 @@ func (storage *AliOssStorage) Cover(sourceImagePath, coverImagePath string, widt
 		log.Println(err)
 		return errors.New("缩略图生成失败")
 	}
-
 	return nil
 }
 
 // Delete 删除文件
 func (storage *AliOssStorage) Delete(filePath string) (bool, error) {
-
 	if err := storage.bucket.DeleteObject(filePath); err != nil {
 		log.Println(err.Error())
 		return false, err
 	}
-
 	return true, nil
 }
 
 // MultipleDelete 删除多个文件
 func (storage *AliOssStorage) MultipleDelete(filePath []string) (bool, error) {
-
 	_, err := storage.bucket.DeleteObjects(filePath)
 	oss.DeleteObjectsQuiet(true)
 	if err != nil {
 		log.Println(err)
 		return false, err
 	}
-
 	return true, nil
 }
 
@@ -185,8 +171,7 @@ func (storage *AliOssStorage) MkDir(dir string, mode os.FileMode) (bool, error) 
 
 // SignUrl 获取授权资源路径
 func (storage *AliOssStorage) SignUrl(object string) string {
-
-	signUrl, err := storage.bucket.SignURL(object, oss.HTTPGet, 60 + 8 * 3600)
+	signUrl, err := storage.bucket.SignURL(object, oss.HTTPGet, 60+8*3600)
 	if err != nil {
 		log.Println(err.Error())
 		return object
@@ -207,4 +192,8 @@ func (storage *AliOssStorage) OriginalObject(object string) string {
 		return object
 	}
 	return strings.TrimLeft(u.Path, "/")
+}
+
+func (storage *AliOssStorage) Client() *oss.Client {
+	return storage.client
 }
