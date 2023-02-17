@@ -7,7 +7,6 @@ import (
 	"github.com/dysodeng/filesystem/storage"
 	"github.com/pkg/errors"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"time"
 )
 
+// AliOssAdapter 阿里云OSS存储适配器
 type AliOssAdapter struct {
 	client *oss.Client
 	bucket *oss.Bucket
@@ -85,23 +85,7 @@ func (adapter *AliOssAdapter) HasDir(file string) bool {
 	return true
 }
 
-func (adapter *AliOssAdapter) Read(file string) ([]byte, error) {
-	body, err := adapter.bucket.GetObject(file)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = body.Close()
-	}()
-
-	data, err := ioutil.ReadAll(body)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
-func (adapter *AliOssAdapter) ReadStream(file string, mode string) (io.ReadCloser, error) {
+func (adapter *AliOssAdapter) Read(file string) (io.ReadCloser, error) {
 	return adapter.bucket.GetObject(file)
 }
 
@@ -167,15 +151,15 @@ func (adapter *AliOssAdapter) Cover(sourceImagePath, coverImagePath string, widt
 	return nil
 }
 
-func (adapter *AliOssAdapter) Delete(filePath string) (bool, error) {
-	if err := adapter.bucket.DeleteObject(filePath); err != nil {
+func (adapter *AliOssAdapter) Delete(file string) (bool, error) {
+	if err := adapter.bucket.DeleteObject(file); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (adapter *AliOssAdapter) MultipleDelete(filePath []string) (bool, error) {
-	_, err := adapter.bucket.DeleteObjects(filePath)
+func (adapter *AliOssAdapter) MultipleDelete(fileList []string) (bool, error) {
+	_, err := adapter.bucket.DeleteObjects(fileList)
 	oss.DeleteObjectsQuiet(true)
 	if err != nil {
 		return false, err
