@@ -211,27 +211,17 @@ func (adapter *HwObsAdapter) List(dir string, iterable func(attribute storage.At
 		dir = ""
 	}
 
-	prefixDir := dir
+	input.Prefix = dir
+	output, err := adapter.client.ListObjects(input)
+	if err != nil {
+		return err
+	}
 
-	for {
-		input.Prefix = prefixDir
-		output, err := adapter.client.ListObjects(input)
-		if err != nil {
-			return err
-		}
-
-		for _, prefix := range output.CommonPrefixes {
-			iterable(storage.NewDirectoryAttribute(prefix, "", 0))
-		}
-		for _, content := range output.Contents {
-			iterable(storage.NewFileAttribute(content.Key, "", "", content.Size, content.LastModified.Unix()))
-		}
-
-		if output.IsTruncated {
-			prefixDir = output.Prefix
-		} else {
-			break
-		}
+	for _, prefix := range output.CommonPrefixes {
+		iterable(storage.NewDirectoryAttribute(prefix, "", 0))
+	}
+	for _, content := range output.Contents {
+		iterable(storage.NewFileAttribute(content.Key, "", "", content.Size, content.LastModified.Unix()))
 	}
 
 	return nil

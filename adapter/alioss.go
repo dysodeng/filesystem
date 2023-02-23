@@ -179,29 +179,22 @@ func (adapter *AliOssAdapter) List(dir string, iterable func(attribute storage.A
 	dir = strings.TrimRight(dir, "/") + "/"
 	prefixDir := oss.Prefix(dir)
 	continueToken := ""
-	for {
-		lsRes, err := adapter.bucket.ListObjectsV2(prefixDir, oss.ContinuationToken(continueToken), oss.Delimiter("/"), oss.FetchOwner(true))
-		if err != nil {
-			return err
-		}
 
-		for _, prefix := range lsRes.CommonPrefixes {
-			iterable(storage.NewDirectoryAttribute(prefix, "", 0))
-		}
-		for _, object := range lsRes.Objects {
-			if object.Key == dir {
-				continue
-			}
-			iterable(storage.NewFileAttribute(object.Key, "", "", object.Size, object.LastModified.Unix()))
-		}
-
-		if lsRes.IsTruncated {
-			prefixDir = oss.Prefix(lsRes.Prefix)
-			continueToken = lsRes.ContinuationToken
-		} else {
-			break
-		}
+	lsRes, err := adapter.bucket.ListObjectsV2(prefixDir, oss.ContinuationToken(continueToken), oss.Delimiter("/"), oss.FetchOwner(true))
+	if err != nil {
+		return err
 	}
+
+	for _, prefix := range lsRes.CommonPrefixes {
+		iterable(storage.NewDirectoryAttribute(prefix, "", 0))
+	}
+	for _, object := range lsRes.Objects {
+		if object.Key == dir {
+			continue
+		}
+		iterable(storage.NewFileAttribute(object.Key, "", "", object.Size, object.LastModified.Unix()))
+	}
+
 	return nil
 }
 
