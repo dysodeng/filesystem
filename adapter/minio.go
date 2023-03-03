@@ -4,10 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"github.com/dysodeng/filesystem/storage"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"image"
 	"io"
 	"log"
@@ -15,6 +11,11 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/disintegration/imaging"
+	"github.com/dysodeng/filesystem/storage"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // MinioAdapter Minio存储适配器
@@ -93,38 +94,6 @@ func (adapter *MinioAdapter) Save(dstFile string, srcFile io.Reader, mimeType st
 	return true, nil
 }
 
-func (adapter *MinioAdapter) Copy(srcFile, dstFile string) (bool, error) {
-	src := minio.CopySrcOptions{
-		Bucket: adapter.config.BucketName,
-		Object: srcFile,
-	}
-
-	dst := minio.CopyDestOptions{
-		Bucket: adapter.config.BucketName,
-		Object: dstFile,
-	}
-
-	_, err := adapter.client.CopyObject(context.Background(), dst, src)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (adapter *MinioAdapter) Move(dstFile, srcFile string) (bool, error) {
-	_, err := adapter.Copy(srcFile, dstFile)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = adapter.Delete(srcFile)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 func (adapter *MinioAdapter) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
 	sourceImageBytes, err := os.ReadFile(sourceImagePath)
 	if err != nil {
@@ -159,6 +128,38 @@ func (adapter *MinioAdapter) Cover(sourceImagePath, coverImagePath string, width
 	}
 
 	return nil
+}
+
+func (adapter *MinioAdapter) Copy(srcFile, dstFile string) (bool, error) {
+	src := minio.CopySrcOptions{
+		Bucket: adapter.config.BucketName,
+		Object: srcFile,
+	}
+
+	dst := minio.CopyDestOptions{
+		Bucket: adapter.config.BucketName,
+		Object: dstFile,
+	}
+
+	_, err := adapter.client.CopyObject(context.Background(), dst, src)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (adapter *MinioAdapter) Move(dstFile, srcFile string) (bool, error) {
+	_, err := adapter.Copy(srcFile, dstFile)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = adapter.Delete(srcFile)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (adapter *MinioAdapter) Delete(file string) (bool, error) {

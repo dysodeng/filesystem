@@ -3,9 +3,6 @@ package adapter
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/dysodeng/filesystem/storage"
-	"github.com/pkg/errors"
 	"io"
 	"log"
 	"net/url"
@@ -13,6 +10,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/dysodeng/filesystem/storage"
+	"github.com/pkg/errors"
 )
 
 // AliOssAdapter 阿里云OSS存储适配器
@@ -104,6 +105,25 @@ func (adapter *AliOssAdapter) Save(dstFile string, srcFile io.Reader, mimeType s
 	return true, nil
 }
 
+func (adapter *AliOssAdapter) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
+	style := "image/resize,m_lfit"
+	if width > 0 {
+		style += ",w_" + strconv.Itoa(int(width))
+	}
+	if height > 0 {
+		style += ",h_" + strconv.Itoa(int(height))
+	}
+	process := fmt.Sprintf("%s|sys/saveas,o_%v", style, base64.URLEncoding.EncodeToString([]byte(coverImagePath)))
+
+	_, err := adapter.bucket.ProcessObject(sourceImagePath, process)
+	if err != nil {
+		log.Println(err)
+		return errors.New("缩略图生成失败")
+	}
+
+	return nil
+}
+
 func (adapter *AliOssAdapter) Copy(srcFile, disFile string) (bool, error) {
 	options := []oss.Option{
 		// 复制元数据
@@ -130,25 +150,6 @@ func (adapter *AliOssAdapter) Move(srcFile, disFile string) (bool, error) {
 		return false, err
 	}
 	return true, nil
-}
-
-func (adapter *AliOssAdapter) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
-	style := "image/resize,m_lfit"
-	if width > 0 {
-		style += ",w_" + strconv.Itoa(int(width))
-	}
-	if height > 0 {
-		style += ",h_" + strconv.Itoa(int(height))
-	}
-	process := fmt.Sprintf("%s|sys/saveas,o_%v", style, base64.URLEncoding.EncodeToString([]byte(coverImagePath)))
-
-	_, err := adapter.bucket.ProcessObject(sourceImagePath, process)
-	if err != nil {
-		log.Println(err)
-		return errors.New("缩略图生成失败")
-	}
-
-	return nil
 }
 
 func (adapter *AliOssAdapter) Delete(file string) (bool, error) {

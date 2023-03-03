@@ -2,13 +2,14 @@ package adapter
 
 import (
 	"fmt"
-	"github.com/dysodeng/filesystem/storage"
-	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 	"io"
 	"log"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/dysodeng/filesystem/storage"
+	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 )
 
 // HwObsAdapter 华为云OBS存储适配器
@@ -102,31 +103,6 @@ func (adapter *HwObsAdapter) Save(dstFile string, srcFile io.Reader, mimeType st
 	return true, nil
 }
 
-func (adapter *HwObsAdapter) Copy(srcFile, disFile string) (bool, error) {
-	input := &obs.CopyObjectInput{}
-	input.Bucket = adapter.config.BucketName
-	input.Key = disFile
-	input.CopySourceBucket = adapter.config.BucketName
-	input.CopySourceKey = srcFile
-
-	_, err := adapter.client.CopyObject(input)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (adapter *HwObsAdapter) Move(disFile, srcFile string) (bool, error) {
-	if _, err := adapter.Copy(srcFile, disFile); err != nil {
-		return false, err
-	}
-	if _, err := adapter.Delete(srcFile); err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 func (adapter *HwObsAdapter) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
 	style := "image/resize,m_lfit"
 	if width > 0 {
@@ -156,6 +132,31 @@ func (adapter *HwObsAdapter) Cover(sourceImagePath, coverImagePath string, width
 	}
 
 	return nil
+}
+
+func (adapter *HwObsAdapter) Copy(srcFile, disFile string) (bool, error) {
+	input := &obs.CopyObjectInput{}
+	input.Bucket = adapter.config.BucketName
+	input.Key = disFile
+	input.CopySourceBucket = adapter.config.BucketName
+	input.CopySourceKey = srcFile
+
+	_, err := adapter.client.CopyObject(input)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (adapter *HwObsAdapter) Move(disFile, srcFile string) (bool, error) {
+	if _, err := adapter.Copy(srcFile, disFile); err != nil {
+		return false, err
+	}
+	if _, err := adapter.Delete(srcFile); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (adapter *HwObsAdapter) Delete(file string) (bool, error) {

@@ -1,14 +1,17 @@
 package adapter
 
 import (
-	"github.com/dysodeng/filesystem/storage"
-	"github.com/pkg/errors"
 	"io"
 	"os"
+
+	"github.com/dysodeng/filesystem/storage"
+	"github.com/pkg/errors"
 )
 
 var (
-	FileNotExists = errors.New("file or directory does not exists")
+	FileNotExists   = errors.New("file or directory does not exists")
+	FileNotReadable = errors.New("file is not readable")
+	FileNotWritable = errors.New("file is not writable")
 )
 
 // Adapter 存储适配器接口
@@ -34,6 +37,11 @@ type Adapter interface {
 	// @param srcFile io.Reader 原文件内容
 	Save(dstFile string, srcFile io.Reader, mimeType string) (bool, error)
 
+	// Cover 生成缩略图封面
+	// @param sourceImagePath string 原文件路径
+	// @param coverImagePath string 目标文件路径
+	Cover(sourceImagePath, coverImagePath string, width, height uint) error
+
 	// Copy 复制文件/目录
 	// @param srcFile string 原文件路径
 	// @param dstFile string 目标文件路径
@@ -43,11 +51,6 @@ type Adapter interface {
 	// @param dstFile string 目标文件路径
 	// @param srcFile string 原文件路径
 	Move(disFile, srcFile string) (bool, error)
-
-	// Cover 生成缩略图封面
-	// @param sourceImagePath string 原文件路径
-	// @param coverImagePath string 目标文件路径
-	Cover(sourceImagePath, coverImagePath string, width, height uint) error
 
 	// Delete 删除文件
 	// @param file string 文件路径
