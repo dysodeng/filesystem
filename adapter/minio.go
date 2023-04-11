@@ -18,7 +18,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-// MinioAdapter Minio存储适配器
+// MinioAdapter Minio存储适配器,兼容AWS S3
 type MinioAdapter struct {
 	client *minio.Client
 	config MinioConfig
@@ -29,8 +29,9 @@ type MinioConfig struct {
 	SecretKey  string
 	EndPoint   string
 	BucketName string
-	UseSSL     bool
-	IsPrivate  bool
+	UseSSL     bool // 是否使用https
+	IsPrivate  bool // 是否私有访问权限
+	IsAwsS3    bool // 是否为AWS S3存储
 }
 
 func NewMinioAdapter(config MinioConfig) Adapter {
@@ -86,8 +87,18 @@ func (adapter *MinioAdapter) Read(file string) (io.ReadCloser, error) {
 }
 
 func (adapter *MinioAdapter) Save(dstFile string, srcFile io.Reader, mimeType string) (bool, error) {
-	content, _ := io.ReadAll(srcFile)
-	_, err := adapter.client.PutObject(context.Background(), adapter.config.BucketName, dstFile, srcFile, int64(len(content)), minio.PutObjectOptions{ContentType: mimeType})
+	content, err := io.ReadAll(srcFile)
+	if err != nil {
+		return false, err
+	}
+	_, err = adapter.client.PutObject(
+		context.Background(),
+		adapter.config.BucketName,
+		dstFile,
+		bytes.NewReader(content),
+		int64(len(content)),
+		minio.PutObjectOptions{ContentType: mimeType},
+	)
 	if err != nil {
 		return false, err
 	}
@@ -217,7 +228,13 @@ func (adapter *MinioAdapter) List(dir string, iterable func(attribute storage.At
 
 func (adapter *MinioAdapter) FullPath(path string) string {
 	if adapter.config.IsPrivate {
-		signUrl, err := adapter.client.PresignedGetObject(context.Background(), adapter.config.BucketName, path, time.Hour*3, nil)
+		signUrl, err := adapter.client.PresignedGetObject(
+			context.Background(),
+			adapter.config.BucketName,
+			path,
+			time.Hour*3,
+			nil,
+		)
 		if err != nil {
 			return ""
 		}
@@ -226,11 +243,29 @@ func (adapter *MinioAdapter) FullPath(path string) string {
 		}
 		return signUrl.String()
 	}
-	var s = "http"
+
+	var urlBuilder strings.Builder
 	if adapter.config.UseSSL {
-		s = "https"
+		urlBuilder.WriteString("https")
+	} else {
+		urlBuilder.WriteString("http")
 	}
-	return s + "://" + adapter.config.BucketName + "." + adapter.config.EndPoint + "/" + path
+	urlBuilder.WriteString("://")
+	if adapter.config.IsAwsS3 {
+		urlBuilder.WriteString(adapter.config.BucketName)
+		urlBuilder.WriteString(".")
+		urlBuilder.WriteString(adapter.config.EndPoint)
+		urlBuilder.WriteString("/")
+		urlBuilder.WriteString(path)
+	} else {
+		urlBuilder.WriteString(adapter.config.EndPoint)
+		urlBuilder.WriteString("/")
+		urlBuilder.WriteString(adapter.config.BucketName)
+		urlBuilder.WriteString("/")
+		urlBuilder.WriteString(path)
+	}
+
+	return urlBuilder.String()
 }
 
 func (adapter *MinioAdapter) OriginalPath(fullPath string) string {
