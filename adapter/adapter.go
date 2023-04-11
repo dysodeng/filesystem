@@ -52,7 +52,7 @@ type Adapter interface {
 	// @param dstFile string 目标文件路径
 	// @param srcFile string 原文件路径
 	Move(dstFile, srcFile string) (bool, error)
-
+  
 	// Delete 删除文件
 	// @param file string 文件路径
 	Delete(file string) (bool, error)
