@@ -1,11 +1,17 @@
 package adapter
 
 import (
+	"bytes"
+	"image"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/disintegration/imaging"
 
 	"github.com/dysodeng/filesystem/storage"
 )
@@ -140,53 +146,166 @@ func (adapter *LocalAdapter) Save(dstFile string, srcFile io.Reader, mimeType st
 }
 
 func (adapter *LocalAdapter) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
-	// TODO implement me
-	panic("implement me")
+	sourceImagePath = adapter.absolutePath(sourceImagePath)
+
+	sourceImageBytes, err := os.ReadFile(sourceImagePath)
+	if err != nil {
+		return err
+	}
+
+	format, _ := imaging.FormatFromFilename(sourceImagePath)
+
+	sourceImage, _, err := image.Decode(bytes.NewReader(sourceImageBytes))
+	if err != nil {
+		return err
+	}
+
+	coverImage := imaging.Resize(sourceImage, int(width), int(height), imaging.Lanczos)
+	writer := bytes.NewBuffer(nil)
+
+	err = imaging.Encode(writer, coverImage, format)
+	if err != nil {
+		return err
+	}
+
+	if _, err = adapter.Save(coverImagePath, writer, format.String()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (adapter *LocalAdapter) Copy(srcFile, disFile string) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+func (adapter *LocalAdapter) Copy(srcFile, dstFile string) (bool, error) {
+	dst, err := os.OpenFile(adapter.absolutePath(dstFile), os.O_RDWR|os.O_CREATE, os.FileMode(0644))
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = dst.Close()
+	}()
+
+	src, err := os.Open(adapter.absolutePath(srcFile))
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = src.Close()
+	}()
+
+	_, err = io.Copy(dst, src)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
-func (adapter *LocalAdapter) Move(disFile, srcFile string) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+func (adapter *LocalAdapter) Move(dstFile, srcFile string) (bool, error) {
+	if _, err := adapter.Copy(srcFile, dstFile); err != nil {
+		return false, err
+	}
+
+	if _, err := adapter.Delete(srcFile); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (adapter *LocalAdapter) Delete(file string) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	if !adapter.HasFile(file) {
+		return false, FileNotExists
+	}
+	if !adapter.isWritable(filepath.Dir(file)) {
+		return false, DirectoryNotWritable
+	}
+
+	if err := os.Remove(adapter.absolutePath(file)); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (adapter *LocalAdapter) MultipleDelete(fileList []string) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	for _, file := range fileList {
+		if _, err := adapter.Delete(file); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (adapter *LocalAdapter) MkDir(dir string, mode os.FileMode) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	if !adapter.HasDir(dir) {
+		if !adapter.isWritable(filepath.Dir(dir)) {
+			return false, DirectoryNotWritable
+		}
+		if err := os.Mkdir(adapter.absolutePath(dir), mode); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 func (adapter *LocalAdapter) DeleteDir(dir string) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	if !adapter.HasDir(dir) {
+		return false, FileNotExists
+	}
+
+	if err := os.Remove(adapter.absolutePath(dir)); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (adapter *LocalAdapter) List(dir string, iterable func(attribute storage.Attribute)) error {
-	// TODO implement me
-	panic("implement me")
+	if !adapter.HasDir(dir) {
+		return FileNotExists
+	}
+
+	err := filepath.Walk(adapter.absolutePath(dir), func(path string, info fs.FileInfo, err error) error {
+		var attribute storage.Attribute
+		if info.IsDir() {
+			attribute = storage.NewDirectoryAttribute(path, "", info.ModTime().Unix())
+		} else {
+			attribute = storage.NewFileAttribute(path, "", "", info.Size(), info.ModTime().Unix())
+		}
+
+		iterable(attribute)
+
+		return nil
+	})
+
+	return err
 }
 
 func (adapter *LocalAdapter) FullPath(path string) string {
-	var s = "http"
+	var urlBuilder strings.Builder
+
 	if adapter.config.UseSSL {
-		s = "https"
+		urlBuilder.WriteString("https://")
+	} else {
+		urlBuilder.WriteString("http://")
 	}
-	return s + "://" + adapter.config.BaseUrl + "/" + strings.TrimLeft(path, "/")
+	urlBuilder.WriteString(adapter.config.BaseUrl)
+	urlBuilder.WriteString("/")
+	urlBuilder.WriteString(strings.TrimLeft(path, "/"))
+
+	return urlBuilder.String()
 }
 
 func (adapter *LocalAdapter) OriginalPath(fullPath string) string {
-	return strings.TrimLeft(fullPath, adapter.config.BaseUrl)
+	var baseUrl strings.Builder
+
+	if adapter.config.UseSSL {
+		baseUrl.WriteString("https://")
+	} else {
+		baseUrl.WriteString("http://")
+	}
+	baseUrl.WriteString(adapter.config.BaseUrl)
+	baseUrl.WriteString("/")
+
+	return strings.TrimLeft(fullPath, baseUrl.String())
 }

@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	FileNotExists   = errors.New("file or directory does not exists")
-	FileNotReadable = errors.New("file is not readable")
-	FileNotWritable = errors.New("file is not writable")
+	FileNotExists        = errors.New("file or directory does not exists")
+	FileNotReadable      = errors.New("file is not readable")
+	FileNotWritable      = errors.New("file is not writable")
+	DirectoryNotWritable = errors.New("directory is not writable")
 )
 
 // Adapter 存储适配器接口
@@ -50,7 +51,7 @@ type Adapter interface {
 	// Move 移动文件/目录
 	// @param dstFile string 目标文件路径
 	// @param srcFile string 原文件路径
-	Move(disFile, srcFile string) (bool, error)
+	Move(dstFile, srcFile string) (bool, error)
 
 	// Delete 删除文件
 	// @param file string 文件路径

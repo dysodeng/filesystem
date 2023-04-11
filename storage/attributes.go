@@ -132,7 +132,7 @@ func NewDirectoryAttribute(path, visibility string, lastModified int64) *Directo
 		visibility = VisibilityPublic
 	}
 	return &DirectoryAttribute{
-		path:         strings.Trim(path, "/"),
+		path:         strings.TrimRight(path, "/"),
 		visibility:   visibility,
 		lastModified: lastModified,
 	}
