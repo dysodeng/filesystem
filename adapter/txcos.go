@@ -67,7 +67,9 @@ func (adapter *TxCosAdapter) Info(file string) (storage.Attribute, error) {
 	fileSize, _ := strconv.ParseInt(res.Header.Get("Content-Length"), 10, 64)
 	contentType := res.Header.Get("Content-Type")
 
-	return storage.NewFileAttribute(file, "", contentType, fileSize, lastModified.In(time.Local).Unix()), nil
+	names := strings.Split(strings.TrimRight(file, "/"), "/")
+
+	return storage.NewFileAttribute(names[len(names)-1], file, "", contentType, fileSize, lastModified.In(time.Local).Unix()), nil
 }
 
 // HasFile 判断文件是否存在
@@ -234,7 +236,8 @@ func (adapter *TxCosAdapter) List(dir string, iterable func(attribute storage.At
 		}
 
 		for _, commonPrefix := range v.CommonPrefixes {
-			iterable(storage.NewDirectoryAttribute(commonPrefix, "", 0))
+			names := strings.Split(strings.TrimRight(commonPrefix, "/"), "/")
+			iterable(storage.NewDirectoryAttribute(names[len(names)-1], commonPrefix, "", 0))
 		}
 
 		for _, content := range v.Contents {
@@ -242,7 +245,8 @@ func (adapter *TxCosAdapter) List(dir string, iterable func(attribute storage.At
 				continue
 			}
 			lastModified, _ := time.Parse("2006-01-02T15:04:05.000Z", content.LastModified)
-			iterable(storage.NewFileAttribute(content.Key, "", "", content.Size, lastModified.Local().Unix()))
+			names := strings.Split(strings.TrimRight(content.Key, "/"), "/")
+			iterable(storage.NewFileAttribute(names[len(names)-1], content.Key, "", "", content.Size, lastModified.Local().Unix()))
 		}
 
 		isTruncated = v.IsTruncated

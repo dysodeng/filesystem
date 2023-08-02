@@ -70,8 +70,13 @@ func (adapter *AliOssAdapter) Info(file string) (storage.Attribute, error) {
 
 	lastModified, _ := time.Parse(time.RFC1123, res["Last-Modified"][0])
 	fileSize, _ := strconv.ParseInt(res["Content-Length"][0], 10, 64)
+	names := strings.Split(strings.TrimRight(file, "/"), "/")
+	var name string
+	if len(names) > 0 {
+		name = names[len(names)-1]
+	}
 
-	return storage.NewFileAttribute(file, "", res["Content-Type"][0], fileSize, lastModified.In(time.Local).Unix()), nil
+	return storage.NewFileAttribute(name, file, "", res["Content-Type"][0], fileSize, lastModified.In(time.Local).Unix()), nil
 }
 
 func (adapter *AliOssAdapter) HasFile(file string) bool {
@@ -187,13 +192,23 @@ func (adapter *AliOssAdapter) List(dir string, iterable func(attribute storage.A
 	}
 
 	for _, prefix := range lsRes.CommonPrefixes {
-		iterable(storage.NewDirectoryAttribute(prefix, "", 0))
+		names := strings.Split(strings.TrimRight(prefix, "/"), "/")
+		var name string
+		if len(names) > 0 {
+			name = names[len(names)-1]
+		}
+		iterable(storage.NewDirectoryAttribute(name, prefix, "", 0))
 	}
 	for _, object := range lsRes.Objects {
 		if object.Key == dir {
 			continue
 		}
-		iterable(storage.NewFileAttribute(object.Key, "", "", object.Size, object.LastModified.Unix()))
+		names := strings.Split(strings.TrimRight(object.Key, "/"), "/")
+		var name string
+		if len(names) > 0 {
+			name = names[len(names)-1]
+		}
+		iterable(storage.NewFileAttribute(name, object.Key, "", "", object.Size, object.LastModified.Unix()))
 	}
 
 	return nil

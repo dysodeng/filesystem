@@ -57,7 +57,9 @@ func (adapter *HwObsAdapter) Info(file string) (storage.Attribute, error) {
 		return nil, FileNotExists
 	}
 
-	return storage.NewFileAttribute(file, "", output.ContentType, output.ContentLength, output.LastModified.Unix()), nil
+	names := strings.Split(strings.TrimRight(file, "/"), "/")
+
+	return storage.NewFileAttribute(names[len(names)-1], file, "", output.ContentType, output.ContentLength, output.LastModified.Unix()), nil
 }
 
 func (adapter *HwObsAdapter) HasFile(file string) bool {
@@ -219,10 +221,12 @@ func (adapter *HwObsAdapter) List(dir string, iterable func(attribute storage.At
 	}
 
 	for _, prefix := range output.CommonPrefixes {
-		iterable(storage.NewDirectoryAttribute(prefix, "", 0))
+		names := strings.Split(strings.TrimRight(prefix, "/"), "/")
+		iterable(storage.NewDirectoryAttribute(names[len(names)-1], prefix, "", 0))
 	}
 	for _, content := range output.Contents {
-		iterable(storage.NewFileAttribute(content.Key, "", "", content.Size, content.LastModified.Unix()))
+		names := strings.Split(strings.TrimRight(content.Key, "/"), "/")
+		iterable(storage.NewFileAttribute(names[len(names)-1], content.Key, "", "", content.Size, content.LastModified.Unix()))
 	}
 
 	return nil

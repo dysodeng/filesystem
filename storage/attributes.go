@@ -6,51 +6,60 @@ import (
 	"strings"
 )
 
-const (
-	File      string = "file"
-	Directory string = "directory"
+type (
+	FileType   string // 文件类型
+	Visibility string // 文件可见性
+
+	Attribute interface {
+		Name() string
+		Path() string
+		Type() FileType
+		Visibility() Visibility
+		LastModified() int64
+
+		IsFile() bool
+		IsDir() bool
+
+		MarshalJSON() ([]byte, error)
+		UnmarshalJSON([]byte) error
+	}
 )
 
 const (
-	VisibilityPublic  = "public"
-	VisibilityPrivate = "private"
+	File      FileType = "file"
+	Directory FileType = "directory"
 )
 
-type Attribute interface {
-	Path() string
-	Type() string
-	Visibility() string
-	LastModified() int64
-
-	IsFile() bool
-	IsDir() bool
-
-	MarshalJSON() ([]byte, error)
-	UnmarshalJSON([]byte) error
-}
+const (
+	VisibilityPublic  Visibility = "public"
+	VisibilityPrivate Visibility = "private"
+)
 
 type FileAttribute struct {
+	name         string
 	path         string
 	fileSize     int64
 	lastModified int64
-	visibility   string
+	visibility   Visibility
 	mimeType     string
 }
 
 type jsonAttr struct {
-	Path         string `json:"path"`
-	Type         string `json:"type"`
-	FileSize     int64  `json:"file_size"`
-	LastModified int64  `json:"last_modified"`
-	Visibility   string `json:"visibility"`
-	MimeType     string `json:"mime_type"`
+	Name         string     `json:"name"`
+	Path         string     `json:"path"`
+	Type         FileType   `json:"type"`
+	FileSize     int64      `json:"file_size"`
+	LastModified int64      `json:"last_modified"`
+	Visibility   Visibility `json:"visibility"`
+	MimeType     string     `json:"mime_type"`
 }
 
-func NewFileAttribute(path, visibility, mimeType string, fileSize, lastModified int64) *FileAttribute {
+func NewFileAttribute(name, path string, visibility Visibility, mimeType string, fileSize, lastModified int64) *FileAttribute {
 	if visibility == "" {
 		visibility = VisibilityPublic
 	}
 	return &FileAttribute{
+		name:         name,
 		path:         path,
 		visibility:   visibility,
 		mimeType:     mimeType,
@@ -59,11 +68,15 @@ func NewFileAttribute(path, visibility, mimeType string, fileSize, lastModified 
 	}
 }
 
+func (file *FileAttribute) Name() string {
+	return file.name
+}
+
 func (file *FileAttribute) Path() string {
 	return file.path
 }
 
-func (file *FileAttribute) Type() string {
+func (file *FileAttribute) Type() FileType {
 	return File
 }
 
@@ -71,7 +84,7 @@ func (file *FileAttribute) FileSize() int64 {
 	return file.fileSize
 }
 
-func (file *FileAttribute) Visibility() string {
+func (file *FileAttribute) Visibility() Visibility {
 	return file.visibility
 }
 
@@ -93,6 +106,7 @@ func (file *FileAttribute) IsDir() bool {
 
 func (file *FileAttribute) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
+		"name":          file.name,
 		"path":          file.path,
 		"type":          file.Type(),
 		"file_size":     file.fileSize,
@@ -113,6 +127,7 @@ func (file *FileAttribute) UnmarshalJSON(data []byte) error {
 		return errors.New("类型错误")
 	}
 
+	file.name = m.Name
 	file.path = m.Path
 	file.fileSize = m.FileSize
 	file.lastModified = m.LastModified
@@ -122,31 +137,37 @@ func (file *FileAttribute) UnmarshalJSON(data []byte) error {
 }
 
 type DirectoryAttribute struct {
+	name         string
 	path         string
 	lastModified int64
-	visibility   string
+	visibility   Visibility
 }
 
-func NewDirectoryAttribute(path, visibility string, lastModified int64) *DirectoryAttribute {
+func NewDirectoryAttribute(name, path string, visibility Visibility, lastModified int64) *DirectoryAttribute {
 	if visibility == "" {
 		visibility = VisibilityPublic
 	}
 	return &DirectoryAttribute{
+		name:         name,
 		path:         strings.TrimRight(path, "/"),
 		visibility:   visibility,
 		lastModified: lastModified,
 	}
 }
 
+func (dir *DirectoryAttribute) Name() string {
+	return dir.name
+}
+
 func (dir *DirectoryAttribute) Path() string {
 	return dir.path
 }
 
-func (dir *DirectoryAttribute) Type() string {
+func (dir *DirectoryAttribute) Type() FileType {
 	return Directory
 }
 
-func (dir *DirectoryAttribute) Visibility() string {
+func (dir *DirectoryAttribute) Visibility() Visibility {
 	return dir.visibility
 }
 
@@ -164,6 +185,7 @@ func (dir *DirectoryAttribute) IsDir() bool {
 
 func (dir *DirectoryAttribute) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
+		"name":          dir.name,
 		"path":          dir.path,
 		"type":          dir.Type(),
 		"last_modified": dir.lastModified,
@@ -182,6 +204,7 @@ func (dir *DirectoryAttribute) UnmarshalJSON(data []byte) error {
 		return errors.New("类型错误")
 	}
 
+	dir.name = m.Name
 	dir.path = m.Path
 	dir.lastModified = m.LastModified
 	dir.visibility = m.Visibility

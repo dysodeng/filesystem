@@ -71,7 +71,7 @@ func (adapter *LocalAdapter) Info(file string) (storage.Attribute, error) {
 	}
 
 	if info.IsDir() {
-		return storage.NewDirectoryAttribute(file, "", info.ModTime().Unix()), nil
+		return storage.NewDirectoryAttribute(info.Name(), file, "", info.ModTime().Unix()), nil
 	}
 
 	// mime type
@@ -82,7 +82,7 @@ func (adapter *LocalAdapter) Info(file string) (storage.Attribute, error) {
 
 	contentType := http.DetectContentType(buffer)
 
-	return storage.NewFileAttribute(file, "", contentType, info.Size(), info.ModTime().Unix()), nil
+	return storage.NewFileAttribute(info.Name(), file, "", contentType, info.Size(), info.ModTime().Unix()), nil
 }
 
 func (adapter *LocalAdapter) HasFile(file string) bool {
@@ -268,9 +268,9 @@ func (adapter *LocalAdapter) List(dir string, iterable func(attribute storage.At
 	err := filepath.Walk(adapter.absolutePath(dir), func(path string, info fs.FileInfo, err error) error {
 		var attribute storage.Attribute
 		if info.IsDir() {
-			attribute = storage.NewDirectoryAttribute(path, "", info.ModTime().Unix())
+			attribute = storage.NewDirectoryAttribute(info.Name(), path, "", info.ModTime().Unix())
 		} else {
-			attribute = storage.NewFileAttribute(path, "", "", info.Size(), info.ModTime().Unix())
+			attribute = storage.NewFileAttribute(info.Name(), path, "", "", info.Size(), info.ModTime().Unix())
 		}
 
 		iterable(attribute)

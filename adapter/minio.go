@@ -63,7 +63,9 @@ func (adapter *MinioAdapter) Info(file string) (storage.Attribute, error) {
 		return nil, FileNotExists
 	}
 
-	return storage.NewFileAttribute(info.Key, "", info.ContentType, info.Size, info.LastModified.Unix()), nil
+	names := strings.Split(strings.TrimRight(info.Key, "/"), "/")
+
+	return storage.NewFileAttribute(names[len(names)-1], info.Key, "", info.ContentType, info.Size, info.LastModified.Unix()), nil
 }
 
 func (adapter *MinioAdapter) HasFile(file string) bool {
@@ -216,10 +218,11 @@ func (adapter *MinioAdapter) List(dir string, iterable func(attribute storage.At
 			continue
 		}
 
+		names := strings.Split(strings.TrimRight(object.Key, "/"), "/")
 		if string(object.Key[len(object.Key)-1]) == "/" {
-			iterable(storage.NewDirectoryAttribute(object.Key, "", 0))
+			iterable(storage.NewDirectoryAttribute(names[len(names)-1], object.Key, "", 0))
 		} else {
-			iterable(storage.NewFileAttribute(object.Key, "", object.ContentType, object.Size, object.LastModified.Unix()))
+			iterable(storage.NewFileAttribute(names[len(names)-1], object.Key, "", object.ContentType, object.Size, object.LastModified.Unix()))
 		}
 	}
 
