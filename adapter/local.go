@@ -5,6 +5,7 @@ import (
 	"image"
 	"io"
 	"io/fs"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -50,6 +51,7 @@ func (adapter *LocalAdapter) isReadable(filename string) bool {
 
 // isWritable 是否有可写权限
 func (adapter *LocalAdapter) isWritable(filename string) bool {
+	log.Println(adapter.absolutePath(filename))
 	err := syscall.Access(adapter.absolutePath(filename), syscall.O_RDWR)
 	if err != nil {
 		return false
@@ -238,10 +240,7 @@ func (adapter *LocalAdapter) MultipleDelete(fileList []string) (bool, error) {
 
 func (adapter *LocalAdapter) MkDir(dir string, mode os.FileMode) (bool, error) {
 	if !adapter.HasDir(dir) {
-		if !adapter.isWritable(filepath.Dir(dir)) {
-			return false, DirectoryNotWritable
-		}
-		if err := os.Mkdir(adapter.absolutePath(dir), mode); err != nil {
+		if err := os.MkdirAll(adapter.absolutePath(dir), mode); err != nil {
 			return false, err
 		}
 	}
@@ -266,6 +265,7 @@ func (adapter *LocalAdapter) List(dir string, iterable func(attribute storage.At
 	}
 
 	err := filepath.Walk(adapter.absolutePath(dir), func(path string, info fs.FileInfo, err error) error {
+		path = strings.Replace(path, adapter.config.BasePath, "", 1)
 		var attribute storage.Attribute
 		if info.IsDir() {
 			attribute = storage.NewDirectoryAttribute(info.Name(), path, "", info.ModTime().Unix())
