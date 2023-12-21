@@ -48,7 +48,7 @@ func NewMinioAdapter(config MinioConfig) Adapter {
 		Secure: config.UseSSL,
 	})
 	if err != nil {
-		panic("hw_obs connect error:" + err.Error())
+		panic("minio server connect error:" + err.Error())
 	}
 
 	minioAdapter.client = client

@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -297,15 +298,9 @@ func (adapter *LocalAdapter) FullPath(path string) string {
 }
 
 func (adapter *LocalAdapter) OriginalPath(fullPath string) string {
-	var baseUrl strings.Builder
-
-	if adapter.config.UseSSL {
-		baseUrl.WriteString("https://")
-	} else {
-		baseUrl.WriteString("http://")
+	u, err := url.Parse(fullPath)
+	if err != nil {
+		return fullPath
 	}
-	baseUrl.WriteString(adapter.config.BaseUrl)
-	baseUrl.WriteString("/")
-
-	return strings.TrimLeft(fullPath, baseUrl.String())
+	return strings.TrimLeft(u.Path, "/")
 }
