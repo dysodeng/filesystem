@@ -26,7 +26,6 @@ type LocalAdapter struct {
 type LocalConfig struct {
 	BasePath string
 	BaseUrl  string
-	UseSSL   bool
 }
 
 func NewLocalAdapter(config LocalConfig) Adapter {
@@ -285,12 +284,7 @@ func (adapter *LocalAdapter) List(dir string, iterable func(attribute storage.At
 func (adapter *LocalAdapter) FullPath(path string) string {
 	var urlBuilder strings.Builder
 
-	if adapter.config.UseSSL {
-		urlBuilder.WriteString("https://")
-	} else {
-		urlBuilder.WriteString("http://")
-	}
-	urlBuilder.WriteString(adapter.config.BaseUrl)
+	urlBuilder.WriteString(strings.TrimRight(adapter.config.BaseUrl, "/"))
 	urlBuilder.WriteString("/")
 	urlBuilder.WriteString(strings.TrimLeft(path, "/"))
 
