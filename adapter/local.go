@@ -24,8 +24,9 @@ type LocalAdapter struct {
 }
 
 type LocalConfig struct {
-	BasePath string
-	BaseUrl  string
+	BasePath  string
+	LogicPath string
+	BaseUrl   string
 }
 
 func NewLocalAdapter(config LocalConfig) Adapter {
@@ -286,6 +287,9 @@ func (adapter *LocalAdapter) FullPath(path string) string {
 
 	urlBuilder.WriteString(strings.TrimRight(adapter.config.BaseUrl, "/"))
 	urlBuilder.WriteString("/")
+	if adapter.config.LogicPath != "" {
+		urlBuilder.WriteString(adapter.config.LogicPath + "/")
+	}
 	urlBuilder.WriteString(strings.TrimLeft(path, "/"))
 
 	return urlBuilder.String()
@@ -296,5 +300,11 @@ func (adapter *LocalAdapter) OriginalPath(fullPath string) string {
 	if err != nil {
 		return fullPath
 	}
-	return strings.TrimLeft(u.Path, "/")
+
+	path := strings.TrimLeft(u.Path, "/")
+	if adapter.config.LogicPath != "" {
+		path = strings.Replace(path, adapter.config.LogicPath+"/", "", -1)
+	}
+
+	return path
 }
