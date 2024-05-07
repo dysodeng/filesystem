@@ -276,5 +276,11 @@ func (adapter *MinioAdapter) OriginalPath(fullPath string) string {
 	if err != nil {
 		return fullPath
 	}
-	return strings.TrimLeft(u.Path, "/")
+
+	var originalPath = strings.TrimLeft(u.Path, "/")
+	if !adapter.config.IsAwsS3 {
+		originalPath = strings.TrimLeft(originalPath, adapter.config.BucketName+"/")
+	}
+
+	return originalPath
 }
