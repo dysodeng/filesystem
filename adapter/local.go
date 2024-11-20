@@ -1,8 +1,6 @@
 package adapter
 
 import (
-	"bytes"
-	"image"
 	"io"
 	"io/fs"
 	"log"
@@ -12,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-
-	"github.com/disintegration/imaging"
 
 	"github.com/dysodeng/filesystem/storage"
 )
@@ -149,32 +145,7 @@ func (adapter *LocalAdapter) Save(dstFile string, srcFile io.Reader, mimeType st
 }
 
 func (adapter *LocalAdapter) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
-	sourceImagePath = adapter.absolutePath(sourceImagePath)
-
-	sourceImageBytes, err := os.ReadFile(sourceImagePath)
-	if err != nil {
-		return err
-	}
-
-	format, _ := imaging.FormatFromFilename(sourceImagePath)
-
-	sourceImage, _, err := image.Decode(bytes.NewReader(sourceImageBytes))
-	if err != nil {
-		return err
-	}
-
-	coverImage := imaging.Resize(sourceImage, int(width), int(height), imaging.Lanczos)
-	writer := bytes.NewBuffer(nil)
-
-	err = imaging.Encode(writer, coverImage, format)
-	if err != nil {
-		return err
-	}
-
-	if _, err = adapter.Save(coverImagePath, writer, format.String()); err != nil {
-		return err
-	}
-
+	// TODO
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"image"
 	"io"
 	"log"
 	"net/url"
@@ -12,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/disintegration/imaging"
 	"github.com/dysodeng/filesystem/storage"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -108,38 +106,7 @@ func (adapter *MinioAdapter) Save(dstFile string, srcFile io.Reader, mimeType st
 }
 
 func (adapter *MinioAdapter) Cover(sourceImagePath, coverImagePath string, width, height uint) error {
-	sourceImageBytes, err := os.ReadFile(sourceImagePath)
-	if err != nil {
-		return err
-	}
-
-	format, _ := imaging.FormatFromFilename(sourceImagePath)
-
-	sourceImage, _, err := image.Decode(bytes.NewReader(sourceImageBytes))
-	if err != nil {
-		return err
-	}
-
-	coverImage := imaging.Resize(sourceImage, int(width), int(height), imaging.Lanczos)
-	writer := bytes.NewBuffer(nil)
-
-	err = imaging.Encode(writer, coverImage, format)
-	if err != nil {
-		return err
-	}
-
-	_, err = adapter.client.PutObject(
-		context.Background(),
-		adapter.config.BucketName,
-		coverImagePath,
-		writer,
-		int64(writer.Len()),
-		minio.PutObjectOptions{ContentType: format.String()},
-	)
-	if err != nil {
-		return err
-	}
-
+	// TODO
 	return nil
 }
 
